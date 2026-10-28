@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TalentVerse Test Console</title>
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+  <header>
+    <div>
+      <strong>TalentVerse</strong> <span class="muted">· API test console (temporary — final UI uses the Three.js template)</span>
+    </div>
+    <span id="health" class="pill">checking…</span>
+  </header>
+
+  <nav id="tabs"></nav>
+
+  <main>
+    <section class="card">
+      <h2 id="feature-title">1 · Input</h2>
+      <div id="profile-row" class="row" hidden>
+        <label for="profile">Saved profile <span id="profile-req" class="muted"></span></label>
+        <select id="profile"></select>
+      </div>
+      <label for="text">Text</label>
+      <textarea id="text" rows="9" placeholder="Paste resume / goal / job description / interests / interview notes…"></textarea>
+      <div class="row">
+        <label for="file">…or upload a file (PDF, DOCX, TXT, audio)</label>
+        <input id="file" type="file" accept=".pdf,.docx,.txt,.md,audio/*">
+      </div>
+      <div class="row buttons">
+        <button id="sample" type="button" class="ghost">Load sample</button>
+        <button id="extract" type="button">Extract with AI</button>
+      </div>
+    </section>
+
+    <section class="card" id="preview-card" hidden>
+      <h2>2 · Preview &amp; validation <span class="muted">(nothing saved yet)</span></h2>
+      <div id="validation"></div>
+      <div id="extras"></div>
+      <label for="preview">Extracted data — you can edit before saving</label>
+      <textarea id="preview" rows="16" spellcheck="false" class="mono"></textarea>
+      <div class="row buttons">
+        <label class="inline" id="update-wrap" hidden><input type="checkbox" id="as-update"> Update existing record <span id="update-target" class="muted"></span></label>
+        <button id="confirm" type="button">Confirm &amp; save to database</button>
+      </div>
+    </section>
+
+    <section class="card" id="result-card" hidden>
+      <h2>3 · Database result</h2>
+      <div id="result"></div>
+    </section>
+
+    <section class="card">
+      <h2>Saved records <button id="refresh" type="button" class="ghost small">Refresh</button></h2>
+      <div id="records" class="muted">—</div>
+    </section>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="demo.js"></script>
+</body>
+</html>
