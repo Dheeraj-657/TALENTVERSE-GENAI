@@ -1,6 +1,8 @@
-// Backend base URL: set VITE_API_URL at build time (e.g. https://talentverse-api.onrender.com).
-// In local dev, Vite proxies /api to localhost:5000, so the default "" works.
-const BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+// Backend base URL. VITE_API_URL (set at build time) wins; otherwise local dev uses the Vite proxy ("")
+// and any deployed host falls back to the production API on Render.
+const PRODUCTION_API = "https://talentverse-api-xdg3.onrender.com";
+const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const BASE = (import.meta.env.VITE_API_URL || (isLocal ? "" : PRODUCTION_API)).replace(/\/$/, "");
 
 export class ApiError extends Error {
   constructor(status, error) {
