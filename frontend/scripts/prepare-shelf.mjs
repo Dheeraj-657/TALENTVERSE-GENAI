@@ -66,7 +66,53 @@ const BOOKS = [
   },
 ];
 
+// How-to-use guide printed on each book's interior pages (pages 3-8).
+const COMMON_REVIEW = [
+  "Green VALID: every required field was found.",
+  "Amber WARNINGS: saved data is fine, but check the notes (e.g. evidence not found in your input).",
+  "Red INCOMPLETE: a required field is missing; fill it in via Edit JSON before saving.",
+  "Missing values are shown as \"not found\" and are never invented by the AI.",
+];
+const GUIDES = {
+  profiles: {
+    input: ["Paste resume text, or attach a PDF / DOCX / TXT file.", "Or press Record audio and introduce yourself.", "Email, phone and profile links are redacted before the AI sees the text."],
+    ai: ["Reads the input against a strict JSON schema.", "Extracts name, headline, skills (with evidence), experience, education.", "Invalid output is sent back once for repair, then re-checked."],
+    save: ["Press Review & save, then Confirm.", "New candidate: a row is CREATED in the profiles table.", "Same email uploaded again: tick Update to UPDATE it (version +1).", "Contact details are stored masked only."],
+    fields: ["full_name *", "headline", "location", "total_experience_years", "summary *", "skills * (name, category, level, evidence)", "experience", "education", "certifications, languages"],
+    tips: ["Input must be at least 30 characters.", "Scanned image-only PDFs cannot be read.", "Files up to 10 MB. Images are rejected (415).", "Save a profile first: Job Match needs one."],
+  },
+  "learning-plans": {
+    input: ["Describe your target role and timeframe, e.g. \"Data analyst in 12 weeks\".", "Mention what you already know.", "Optionally pick a saved profile so your skills are used as context."],
+    ai: ["Lists the skills the role requires (must-have / nice-to-have).", "Compares them with your current skills to find gaps.", "Builds ordered milestones with objectives, resources and a deliverable."],
+    save: ["Press Review & save, then Confirm.", "A row is CREATED in the learning_plans table.", "Warnings appear if milestones exceed your timeframe or skip a high-priority gap."],
+    fields: ["target_role *", "timeframe_weeks", "current_skills", "required_skills", "skill_gaps * (level now -> target, priority)", "milestones * (weeks, objectives, deliverable)"],
+    tips: ["If no role is named, target_role is left empty and saving is blocked.", "Give a timeframe for a realistic plan.", "Edit milestones in Edit JSON before saving."],
+  },
+  "job-matches": {
+    input: ["Choose a saved profile (required).", "Paste the full job description.", "Your profile is NOT sent to the AI for this step."],
+    ai: ["Extracts title, seniority, required and preferred skills.", "The server, not the AI, compares them with the profile.", "Score = 70% required + 20% preferred + 10% experience fit."],
+    save: ["Review matched and missing skills and the score.", "Press Review & save, then Confirm.", "A row is CREATED in the job_matches table, linked to the profile."],
+    fields: ["job_title *", "company, location", "seniority, employment_type", "min_experience_years", "required_skills *", "preferred_skills", "responsibilities, qualifications"],
+    tips: ["No profile selected: 400 PROFILE_REQUIRED.", "Score is reproducible: same input, same number.", "Java and JavaScript are treated as different skills."],
+  },
+  "project-briefs": {
+    input: ["Describe your interests (sports, finance, music...).", "List the skills you have or want to practise.", "Optionally pick a saved profile for context."],
+    ai: ["Proposes one realistic solo portfolio project.", "Defines problem, target users, stack and difficulty.", "Adds core and stretch features, weekly milestones and success criteria."],
+    save: ["Press Review & save, then Confirm.", "A row is CREATED in the project_briefs table.", "Saved briefs can be edited later; edits are re-validated."],
+    fields: ["title *", "tagline", "problem_statement *", "target_users", "difficulty, estimated_weeks", "tech_stack *", "core_features * (3+)", "milestones, success_criteria"],
+    tips: ["More specific interests give better briefs.", "Fewer than 3 core features triggers a warning.", "Removing all core features blocks saving (422)."],
+  },
+  "interview-feedback": {
+    input: ["Paste notes from a mock interview, or", "Record a voice reflection with Record audio.", "Audio is transcribed with Whisper; the transcript is shown in the preview."],
+    ai: ["Separates strengths (with evidence from your notes) from improvement areas.", "Rates overall readiness, or leaves it empty if notes are too thin.", "Creates practice tasks with duration and due date."],
+    save: ["Press Review & save, then Confirm.", "A row is CREATED in the interview_feedback table.", "Warnings show if an improvement area has no practice task."],
+    fields: ["role", "interview_type", "overall_readiness", "strengths * (point, evidence)", "improvement_areas * (area, suggestion, priority)", "next_practice_tasks * (task, minutes, due)"],
+    tips: ["Write what actually happened, not just a score.", "Evidence not found in your notes is flagged.", "Short notes may leave readiness empty."],
+  },
+};
+
 // 1. Book data
+for (const book of BOOKS) book.guide = { ...GUIDES[book.id], review: COMMON_REVIEW };
 const start = html.indexOf("const BOOKS = [");
 const end = html.indexOf("\n    ];", start) + "\n    ];".length;
 if (start < 0 || end < start) throw new Error("prepare-shelf: BOOKS array not found");
@@ -95,7 +141,177 @@ html = html.replace(
     open + BOOKS.map((b, i) => `<article class="fallback-book" style="--book-color:${b.color};--book-foil:${b.foil};--book-height:${370 + i * 8}px"><span>Volume ${b.roman}</span><strong>${b.title}</strong></article>`).join("") + close
 );
 
-// 4. "Start" buttons that hand control to the React app.
+// 4. Interior pages: a readable how-to-use guide instead of decorative filler.
+//    Drawn at full canvas resolution with bold, high-contrast type.
+const INTERIOR_PAGES = `function makeInteriorPageTextures(book) {
+      const W = 512;
+      const H = 768;
+      const inkColor = new THREE.Color(book.color).lerp(new THREE.Color(0x15110d), 0.78);
+      const ink = "#" + inkColor.getHexString();
+      const accent = new THREE.Color(book.color).lerp(new THREE.Color(0x000000), 0.15);
+      const accentHex = "#" + accent.getHexString();
+      const g = book.guide;
+
+      function wrap(ctx, text, x, y, maxWidth, lineHeight, maxLines = 12) {
+        const words = String(text).split(/\\s+/);
+        let line = "";
+        let lines = 0;
+        for (const word of words) {
+          const test = line ? line + " " + word : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            if (lines >= maxLines) return y + lines * lineHeight;
+            ctx.fillText(line, x, y + lines * lineHeight);
+            line = word;
+            lines += 1;
+          } else {
+            line = test;
+          }
+        }
+        if (line && lines < maxLines) {
+          ctx.fillText(line, x, y + lines * lineHeight);
+          lines += 1;
+        }
+        return y + lines * lineHeight;
+      }
+
+      function heading(ctx, kicker, title) {
+        ctx.fillStyle = accentHex;
+        ctx.font = '700 15px Inter, "Helvetica Neue", Arial, sans-serif';
+        ctx.letterSpacing = "2px";
+        ctx.fillText(kicker, 44, 122);
+        ctx.fillStyle = ink;
+        ctx.letterSpacing = "0px";
+        ctx.font = '600 40px "Iowan Old Style", Baskerville, Georgia, serif';
+        const end = wrap(ctx, title, 44, 172, W - 88, 44, 2);
+        ctx.fillStyle = accentHex;
+        ctx.fillRect(44, end - 18, 64, 4);
+        return end + 22;
+      }
+
+      function bullets(ctx, items, y, { numbered = false, size = 20 } = {}) {
+        ctx.font = '500 ' + size + 'px Inter, "Helvetica Neue", Arial, sans-serif';
+        ctx.letterSpacing = "0px";
+        const lh = Math.round(size * 1.38);
+        items.forEach((item, i) => {
+          if (y > H - 90) return;
+          ctx.fillStyle = accentHex;
+          ctx.font = '700 ' + size + 'px Inter, "Helvetica Neue", Arial, sans-serif';
+          ctx.fillText(numbered ? String(i + 1) + "." : "\\u2022", 46, y);
+          ctx.fillStyle = ink;
+          ctx.font = '500 ' + size + 'px Inter, "Helvetica Neue", Arial, sans-serif';
+          y = wrap(ctx, item, 76, y, W - 76 - 40, lh, 5) + 12;
+        });
+        return y;
+      }
+
+      const PAGES = [
+        (ctx) => {
+          ctx.fillStyle = accentHex;
+          ctx.font = '700 15px Inter, "Helvetica Neue", Arial, sans-serif';
+          ctx.letterSpacing = "2.4px";
+          ctx.fillText("VOLUME " + book.roman + "  \\u00b7  " + book.discipline.toUpperCase(), 44, 150);
+          ctx.fillStyle = ink;
+          ctx.letterSpacing = "0px";
+          ctx.font = '600 ' + (book.title.length > 10 ? 54 : 64) + 'px "Iowan Old Style", Baskerville, Georgia, serif';
+          const end = wrap(ctx, book.title, 42, 236, W - 84, 64, 2);
+          ctx.fillStyle = accentHex;
+          ctx.fillRect(44, end - 30, 72, 5);
+          ctx.fillStyle = ink;
+          ctx.font = 'italic 500 25px "Iowan Old Style", Baskerville, Georgia, serif';
+          wrap(ctx, book.note, 44, end + 30, W - 88, 34, 4);
+          ctx.fillStyle = accentHex;
+          ctx.font = '700 17px Inter, "Helvetica Neue", Arial, sans-serif';
+          ctx.letterSpacing = "2px";
+          ctx.fillText("HOW TO USE THIS VOLUME  \\u2192", 44, H - 120);
+          ctx.letterSpacing = "0px";
+          ctx.fillStyle = ink;
+          ctx.font = '500 16px Inter, "Helvetica Neue", Arial, sans-serif';
+          ctx.fillText("Turn the page with the arrows below.", 44, H - 90);
+        },
+        (ctx) => {
+          let y = heading(ctx, "01  \\u00b7  OVERVIEW", "What it does");
+          ctx.fillStyle = ink;
+          ctx.font = '500 21px Inter, "Helvetica Neue", Arial, sans-serif';
+          y = wrap(ctx, book.deck, 44, y + 6, W - 88, 30, 9) + 18;
+          const rows = [["INPUT", book.binding], ["OUTPUT", book.format], ["SAVES TO", book.theme]];
+          for (const [k, v] of rows) {
+            ctx.fillStyle = accentHex;
+            ctx.font = '700 13px Inter, "Helvetica Neue", Arial, sans-serif';
+            ctx.letterSpacing = "1.8px";
+            ctx.fillText(k, 44, y);
+            ctx.letterSpacing = "0px";
+            ctx.fillStyle = ink;
+            ctx.font = '600 19px Inter, "Helvetica Neue", Arial, sans-serif';
+            y = wrap(ctx, v, 44, y + 26, W - 88, 26, 2) + 14;
+          }
+        },
+        (ctx) => bullets(ctx, g.input, heading(ctx, "STEP 1", "Give your input"), { numbered: true }),
+        (ctx) => bullets(ctx, g.ai, heading(ctx, "STEP 2", "AI extracts & validates"), { numbered: true }),
+        (ctx) => bullets(ctx, g.review, heading(ctx, "STEP 3", "Review the preview"), { size: 19 }),
+        (ctx) => bullets(ctx, g.save, heading(ctx, "STEP 4", "Confirm & save"), { numbered: true }),
+        (ctx) => {
+          const y = heading(ctx, "REFERENCE", "Fields extracted");
+          bullets(ctx, g.fields, y, { size: 19 });
+          ctx.fillStyle = accentHex;
+          ctx.font = '600 15px Inter, "Helvetica Neue", Arial, sans-serif';
+          ctx.fillText("* required before saving", 44, H - 74);
+        },
+        (ctx) => {
+          const y = heading(ctx, "TIPS", "Tips & errors");
+          bullets(ctx, g.tips, y, { size: 19 });
+          ctx.fillStyle = accentHex;
+          ctx.font = '700 17px Inter, "Helvetica Neue", Arial, sans-serif';
+          ctx.letterSpacing = "1.6px";
+          ctx.fillText("PRESS \\u201cUSE THIS TOOL \\u2192\\u201d TO START", 44, H - 80);
+          ctx.letterSpacing = "0px";
+        },
+      ];
+
+      return PAGES.map((draw, pageIndex) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext("2d");
+        const random = seededRandom(hashSeed(book.id + "-leaf-" + pageIndex) + book.seed);
+        drawPaperSurface(ctx, W, H, random);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+
+        ctx.fillStyle = ink;
+        ctx.globalAlpha = 0.8;
+        ctx.font = '600 12px Inter, "Helvetica Neue", Arial, sans-serif';
+        ctx.letterSpacing = "1.8px";
+        ctx.fillText("TALENTVERSE  /  " + book.roman, 44, 48);
+        ctx.textAlign = "right";
+        ctx.fillText(pad(pageIndex + 1) + " / 08", W - 44, 48);
+        ctx.textAlign = "left";
+        ctx.fillRect(44, 62, W - 88, 1.5);
+        ctx.fillRect(44, H - 44, W - 88, 1.5);
+        ctx.globalAlpha = 1;
+        ctx.letterSpacing = "0px";
+
+        draw(ctx);
+
+        const texture = configureCanvasTexture(new THREE.CanvasTexture(canvas), { anisotropy: 16 });
+        texture.name = book.id + "-interior-page-" + (pageIndex + 1);
+        return texture;
+      });
+    }
+
+    `;
+const pagesStart = html.indexOf("function makeInteriorPageTextures(book) {");
+const pagesEnd = html.indexOf("function makeContactShadowTexture()");
+if (pagesStart < 0 || pagesEnd < pagesStart) throw new Error("prepare-shelf: interior page renderer not found");
+html = html.slice(0, pagesStart) + INTERIOR_PAGES + html.slice(pagesEnd);
+
+html = html.replace(
+  /function getSpreadLabels\(book\) \{[\s\S]*?\n    \}/,
+  `function getSpreadLabels(book) {
+      return ["How to use", "Overview · Step 1", "Step 2 · Step 3", "Step 4 · Fields", "Tips & errors"];
+    }`
+);
+
+// 5. "Start" buttons that hand control to the React app.
 replaceOnce('<button class="text-button" id="inspect" type="button">Open</button>', '<button class="text-button" id="inspect" type="button">Open</button>\n        <button class="text-button tv-start" id="tv-start-browse" type="button">Start</button>');
 replaceOnce('<div class="detail-buttons">', '<div class="detail-buttons">\n          <button class="text-button reset-button tv-start" id="tv-start-detail" type="button">Use this tool →</button>');
 

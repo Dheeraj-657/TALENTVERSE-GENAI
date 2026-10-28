@@ -12,13 +12,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@designcodeio/threeui": "1.2.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "three": "0.165.0"
+    "@designcodeio/threeui": "^1.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.165.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "4.3.3",
-    "vite": "5.4.10"
+    "@vitejs/plugin-react": "^4.3.3",
+    "vite": "^5.4.10"
   }
 }
