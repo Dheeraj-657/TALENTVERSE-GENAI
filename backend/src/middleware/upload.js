@@ -7,6 +7,10 @@ export const DOC_TYPES = {
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
   "text/plain": "txt",
   "text/markdown": "txt",
+  // Images (e.g. a photographed or screenshotted resume) are read with OCR.
+  "image/png": "image",
+  "image/jpeg": "image",
+  "image/webp": "image",
 };
 
 export const AUDIO_TYPES = new Set([
@@ -29,6 +33,6 @@ export const upload = multer({
   limits: { fileSize: env.maxUploadMb * 1024 * 1024, files: 1 },
   fileFilter(req, file, cb) {
     if (DOC_TYPES[file.mimetype] || AUDIO_TYPES.has(file.mimetype)) return cb(null, true);
-    cb(new AppError(415, "UNSUPPORTED_FILE_TYPE", `Unsupported file type: ${file.mimetype}. Use PDF, DOCX, TXT or an audio file.`));
+    cb(new AppError(415, "UNSUPPORTED_FILE_TYPE", `Unsupported file type: ${file.mimetype}. Use PDF, DOCX, TXT, an image (PNG/JPG/WEBP) or an audio file.`));
   },
 });

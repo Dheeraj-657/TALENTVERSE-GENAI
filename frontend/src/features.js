@@ -6,7 +6,7 @@ export const FEATURES = [
     title: "Profile",
     label: "Skills & experience profile",
     note: "A resume or spoken introduction, bound into a structured profile.",
-    inputHint: "Paste a resume, upload a PDF / DOCX, or record an audio introduction.",
+    inputHint: "Paste a resume, upload a PDF / DOCX / image (scans are read with OCR), or record an audio introduction.",
     color: "#182a43",
     sample: `Arjun Mehta | arjun.m@gmail.com | +91 91234 56789
 Final-year B.Tech CSE student at SRM Institute (2026). Backend intern at TechNova (Jun 2025 - Aug 2025): built REST APIs in Express and Node.js with PostgreSQL.

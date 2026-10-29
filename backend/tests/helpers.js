@@ -33,11 +33,25 @@ export function fakeAi() {
 }
 fakeAi.transcript = "";
 
+// Fake OCR: returns fakeOcr.text, or throws if it is an Error.
+export const fakeOcr = {
+  text: "",
+  calls: 0,
+  async pdf() {
+    return { text: await fakeOcr.images() };
+  },
+  async images() {
+    fakeOcr.calls += 1;
+    if (fakeOcr.text instanceof Error) throw fakeOcr.text;
+    return fakeOcr.text;
+  },
+};
+
 // Every test run uses a fresh in-memory SQLite database: fast, isolated, no files left behind.
 export async function setup() {
   connectDB(":memory:");
   const ai = fakeAi();
-  const app = createApp({ aiClient: ai });
+  const app = createApp({ aiClient: ai, ocr: fakeOcr });
   return {
     app,
     ai,

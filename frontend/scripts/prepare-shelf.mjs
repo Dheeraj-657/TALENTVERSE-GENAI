@@ -23,7 +23,7 @@ const BOOKS = [
     id: "profiles", title: "Profile", roman: "I", discipline: "Resume intelligence",
     note: "A resume or spoken introduction, bound into a structured profile.",
     deck: "Upload a resume, paste it, or record an introduction. TalentVerse extracts skills, experience and education into a validated profile — missing details stay marked as missing, never invented.",
-    binding: "Text · PDF · DOCX · audio", format: "Validated skills profile", theme: "profiles table · create / update", motif: "Nested brackets", motifKey: "brackets",
+    binding: "Text · PDF · DOCX · image · audio", format: "Validated skills profile", theme: "profiles table · create / update", motif: "Nested brackets", motifKey: "brackets",
     paletteLabel: "Ultramarine · bone · copper", color: "#182a43", foil: "#c87046",
     palette: { paper: "#171a24", paperDeep: "#10131b", paperPale: "#f1eadf", ink: "#f4eee6", inkSoft: "#b9b4ae", wall: "#171a24", shelf: "#3a2118", shelfDark: "#1c0e0a", light: "#f4d7b9", fill: "#9fb3c9" },
     width: 1.02, height: 1.58, depth: 0.26, chapters: ["Read", "Extract", "Verify"], seed: 11,
@@ -75,11 +75,11 @@ const COMMON_REVIEW = [
 ];
 const GUIDES = {
   profiles: {
-    input: ["Paste resume text, or attach a PDF / DOCX / TXT file.", "Or press Record audio and introduce yourself.", "Email, phone and profile links are redacted before the AI sees the text."],
+    input: ["Paste resume text, or attach a PDF / DOCX / TXT or a photo / scan of it.", "Or press Record audio and introduce yourself.", "Email, phone and profile links are redacted before the AI sees the text."],
     ai: ["Reads the input against a strict JSON schema.", "Extracts name, headline, skills (with evidence), experience, education.", "Invalid output is sent back once for repair, then re-checked."],
     save: ["Press Review & save, then Confirm.", "New candidate: a row is CREATED in the profiles table.", "Same email uploaded again: tick Update to UPDATE it (version +1).", "Contact details are stored masked only."],
     fields: ["full_name *", "headline", "location", "total_experience_years", "summary *", "skills * (name, category, level, evidence)", "experience", "education", "certifications, languages"],
-    tips: ["Input must be at least 30 characters.", "Scanned image-only PDFs cannot be read.", "Files up to 10 MB. Images are rejected (415).", "Save a profile first: Job Match needs one."],
+    tips: ["Input must be at least 30 characters.", "Scans and image PDFs are read with OCR: check the text.", "Files up to 10 MB. Other file types are rejected (415).", "Save a profile first: Job Match needs one."],
   },
   "learning-plans": {
     input: ["Describe your target role and timeframe, e.g. \"Data analyst in 12 weeks\".", "Mention what you already know.", "Optionally pick a saved profile so your skills are used as context."],

@@ -10,7 +10,7 @@ import { dbStatus } from "./config/db.js";
 import apiRouter from "./routes/index.js";
 import { errorHandler, notFound } from "./middleware/errors.js";
 
-export function createApp({ aiClient } = {}) {
+export function createApp({ aiClient, ocr } = {}) {
   const app = express();
 
   app.set("trust proxy", 1); // Render / Vercel sit behind a proxy
@@ -38,6 +38,7 @@ export function createApp({ aiClient } = {}) {
 
   // Lets tests inject a fake AI client without touching the network.
   app.locals.aiClient = aiClient;
+  app.locals.ocr = ocr;
 
   app.get("/api/health", (req, res) => {
     res.json({ ok: true, service: "talentverse-api", db: dbStatus(), model: env.groqModel, time: new Date().toISOString() });

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const ACCEPT = ".pdf,.docx,.txt,.md,audio/*";
+const ACCEPT = ".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,audio/*";
 const MIN_CHARS = 30;
 
 export function InputPanel({ feature, profiles, busy, onSubmit }) {

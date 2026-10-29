@@ -66,11 +66,15 @@ export function PreviewPanel({ result, busy, onSave }) {
       </div>
 
       <dl className="meta-strip">
-        <div><dt>Source</dt><dd>{result.source.type}{result.source.file_name ? ` · ${result.source.file_name}` : ""} · {result.source.chars} chars</dd></div>
+        <div><dt>Source</dt><dd>{result.source.type}{result.source.file_name ? ` · ${result.source.file_name}` : ""}{result.source.extraction === "ocr" ? " · read with OCR" : ""} · {result.source.chars} chars</dd></div>
         <div><dt>Model</dt><dd>{result.ai.model} · {result.ai.attempts} attempt{result.ai.attempts > 1 ? "s" : ""}</dd></div>
         <div><dt>Privacy</dt><dd>{result.privacy.redacted_emails + result.privacy.redacted_phones + result.privacy.redacted_links} contact detail(s) redacted before AI</dd></div>
         <div><dt>Not found</dt><dd>{v.missing_fields.length ? v.missing_fields.join(", ") : "—"}</dd></div>
       </dl>
+
+      {result.source.extraction === "ocr" && (
+        <p className="hint">This file had no selectable text, so it was read with OCR. Check names, numbers and dates before saving.</p>
+      )}
 
       {v.warnings.length > 0 && (
         <ul className="warnings">

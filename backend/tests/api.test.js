@@ -1,7 +1,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
-import { setup, fakeAi, RESUME_TEXT, goodProfile } from "./helpers.js";
+import { setup, fakeAi, fakeOcr, RESUME_TEXT, goodProfile } from "./helpers.js";
 import { countRecords } from "../src/db/repository.js";
 
 let ctx;
@@ -136,7 +136,7 @@ test("INVALID INPUT: empty, too short, wrong type, bad JSON, unknown feature", a
   assert.equal((await request(ctx.app).post("/api/profiles/extract").send({}).expect(400)).body.error.code, "EMPTY_INPUT");
   assert.equal((await request(ctx.app).post("/api/profiles/extract").send({ text: "hello" }).expect(400)).body.error.code, "INPUT_TOO_SHORT");
   assert.equal((await request(ctx.app).post("/api/profiles/extract").send({ text: 42 }).expect(400)).body.error.code, "INVALID_INPUT");
-  const img = await request(ctx.app).post("/api/profiles/extract").attach("file", Buffer.from("fake"), { filename: "me.png", contentType: "image/png" }).expect(415);
+  const img = await request(ctx.app).post("/api/profiles/extract").attach("file", Buffer.from("fake"), { filename: "cv.zip", contentType: "application/zip" }).expect(415);
   assert.equal(img.body.error.code, "UNSUPPORTED_FILE_TYPE");
   const badJson = await request(ctx.app).post("/api/profiles/extract").set("content-type", "application/json").send("{bad").expect(400);
   assert.equal(badJson.body.error.code, "INVALID_JSON");
@@ -267,4 +267,29 @@ test("PROJECT BRIEF: create, then PUT update (re-validated), then delete needs c
   await request(ctx.app).delete(`/api/project-briefs/${id}?confirm=true`).expect(200);
   await request(ctx.app).get(`/api/project-briefs/${id}`).expect(404);
   assert.equal((await request(ctx.app).get("/api/project-briefs/not-an-id").expect(400)).body.error.code, "INVALID_ID");
+});
+
+test("OCR: image upload (or image-only PDF) is read with OCR and labelled as such", async () => {
+  fakeOcr.text = RESUME_TEXT;
+  ctx.ai.queue(goodProfile());
+  const res = await request(ctx.app).post("/api/profiles/extract").attach("file", Buffer.from("png-bytes"), { filename: "resume.png", contentType: "image/png" }).expect(200);
+  assert.equal(res.body.source.extraction, "ocr");
+  assert.equal(res.body.privacy.redacted_emails, 1, "OCR text is redacted like any other input");
+  assert.equal(res.body.validation.status, "valid");
+});
+
+test("OCR FAILURE: unreadable image -> 422 OCR_FAILED, AI never called", async () => {
+  fakeOcr.text = new Error("model download failed");
+  const res = await request(ctx.app).post("/api/profiles/extract").attach("file", Buffer.from("png-bytes"), { filename: "blurry.jpg", contentType: "image/jpeg" }).expect(422);
+  assert.equal(res.body.error.code, "OCR_FAILED");
+  assert.equal(ctx.ai.calls.length, 0);
+  fakeOcr.text = "";
+});
+
+test("TEXT-LAYER documents skip OCR", async () => {
+  fakeOcr.calls = 0;
+  ctx.ai.queue(goodProfile());
+  const res = await request(ctx.app).post("/api/profiles/extract").attach("file", Buffer.from(RESUME_TEXT), { filename: "cv.txt", contentType: "text/plain" }).expect(200);
+  assert.equal(res.body.source.extraction, "text_layer");
+  assert.equal(fakeOcr.calls, 0);
 });
